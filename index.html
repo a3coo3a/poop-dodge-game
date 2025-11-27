@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>똥 피하기 게임</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <h1>💩 똥 피하기 게임 🏃</h1>
+
+            <div class="selection-group">
+                <h2>캐릭터 선택</h2>
+                <div class="character-options">
+                    <button class="char-btn selected" data-char="🦈" data-name="Tralalero">🦈<br>트랄랄레로</button>
+                    <button class="char-btn" data-char="🐊" data-name="Bombardiro">🐊<br>봄바르디로</button>
+                    <button class="char-btn" data-char="🥁" data-name="Sahur">🥁<br>사후르</button>
+                </div>
+            </div>
+
+            <div class="selection-group">
+                <h2>떨어지는 것 선택</h2>
+                <div class="obstacle-options">
+                    <button class="obs-btn selected" data-obs="💩">💩<br>똥</button>
+                    <button class="obs-btn" data-obs="🪨">🪨<br>돌</button>
+                    <button class="obs-btn" data-obs="👽">👽<br>외계인</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="player-name" placeholder="이름을 입력하세요" maxlength="10">
+            </div>
+
+            <button id="start-btn" class="action-btn">게임 시작!</button>
+            <button id="show-leaderboard-btn" class="secondary-btn">순위 보기</button>
+        </div>
+
+        <!-- Game HUD -->
+        <div id="hud" class="hidden">
+            <div class="hud-item">단계: <span id="stage-display">1</span>/10</div>
+            <button id="quit-btn" class="hud-btn">그만하기</button>
+            <div class="hud-item">점수: <span id="score-display">0</span></div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="screen hidden">
+            <h1>앗! 맞았다! 😭</h1>
+            <p>최종 점수: <span id="final-score">0</span></p>
+            <p>도달한 단계: <span id="final-stage">1</span></p>
+            <button id="restart-btn" class="action-btn">다시 하기</button>
+            <button id="home-btn" class="secondary-btn">처음으로</button>
+        </div>
+
+        <!-- Victory Screen -->
+        <div id="victory-screen" class="screen hidden">
+            <h1>🎉 축하합니다! 🎉</h1>
+            <p>모든 단계를 통과했어요!</p>
+            <p>최종 점수: <span id="victory-score">0</span></p>
+            <button id="victory-home-btn" class="action-btn">처음으로</button>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div id="leaderboard-screen" class="screen hidden">
+            <h1>🏆 명예의 전당 🏆</h1>
+            <ul id="leaderboard-list">
+                <!-- Leaderboard items will be injected here -->
+            </ul>
+            <button id="leaderboard-back-btn" class="action-btn">돌아가기</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
