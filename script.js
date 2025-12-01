@@ -29,6 +29,12 @@ let itemsDodgedInStage = 0;
 let isGameOver = false;
 let isVictory = false;
 
+// Collision Effect State
+let isColliding = false;
+let collisionTime = 0;
+let shakeIntensity = 0;
+let flashOpacity = 0;
+
 // Entities
 let player = {
     x: CANVAS_WIDTH / 2 - PLAYER_SIZE / 2,
@@ -122,6 +128,39 @@ function setupEventListeners() {
     // Touch Controls (Simple left/right based on screen side)
     canvas.addEventListener('touchstart', handleTouch);
     canvas.addEventListener('touchend', handleTouchEnd);
+
+    // Mobile Control Buttons
+    const leftBtn = document.getElementById('left-btn');
+    const rightBtn = document.getElementById('right-btn');
+
+    leftBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        touchInput = -1;
+    });
+
+    leftBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        touchInput = 0;
+    });
+
+    rightBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        touchInput = 1;
+    });
+
+    rightBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        touchInput = 0;
+    });
+
+    // Also support mouse events for testing on desktop
+    leftBtn.addEventListener('mousedown', () => touchInput = -1);
+    leftBtn.addEventListener('mouseup', () => touchInput = 0);
+    leftBtn.addEventListener('mouseleave', () => touchInput = 0);
+
+    rightBtn.addEventListener('mousedown', () => touchInput = 1);
+    rightBtn.addEventListener('mouseup', () => touchInput = 0);
+    rightBtn.addEventListener('mouseleave', () => touchInput = 0);
 }
 
 // Input Handling
@@ -162,6 +201,7 @@ function startGame() {
     resetGameState();
     showScreen('game');
     hud.container.classList.remove('hidden');
+    document.getElementById('mobile-controls').classList.remove('hidden');
 
     lastTime = performance.now();
     gameLoopId = requestAnimationFrame(gameLoop);
@@ -176,6 +216,13 @@ function resetGameState() {
     obstacles = [];
     obstacleSpeed = 200;
     spawnRate = 1000;
+
+    // Reset collision effects
+    isColliding = false;
+    collisionTime = 0;
+    shakeIntensity = 0;
+    flashOpacity = 0;
+    collisionParticles = [];
 
     player.x = CANVAS_WIDTH / 2 - PLAYER_SIZE / 2;
 
@@ -194,6 +241,7 @@ function gameLoop(timestamp) {
 
     update(deltaTime);
     updateBackground(deltaTime);
+    updateCollisionParticles(deltaTime);
     draw();
 
     gameLoopId = requestAnimationFrame(gameLoop);
@@ -223,8 +271,12 @@ function update(deltaTime) {
         obs.y += obstacleSpeed * deltaTime;
 
         // Collision Detection
-        if (checkCollision(player, obs)) {
-            gameOver();
+        if (!isColliding && checkCollision(player, obs)) {
+            triggerCollisionEffect();
+            // Store collision position for particle effect
+            obs.collided = true;
+            obs.collisionX = obs.x + obs.width / 2;
+            obs.collisionY = obs.y + obs.height / 2;
             return;
         }
 
@@ -235,6 +287,22 @@ function update(deltaTime) {
             itemsDodgedInStage++;
             checkProgression();
             updateHUD();
+        }
+    }
+
+    // Update collision effect
+    if (isColliding) {
+        collisionTime += deltaTime;
+
+        // Screen shake effect
+        shakeIntensity = Math.max(0, 15 - collisionTime * 30);
+
+        // Flash effect
+        flashOpacity = Math.max(0, 0.7 - collisionTime * 1.4);
+
+        // End game after effect duration
+        if (collisionTime > 0.5) {
+            gameOver();
         }
     }
 }
@@ -274,6 +342,54 @@ function checkProgression() {
     }
 }
 
+function triggerCollisionEffect() {
+    isColliding = true;
+    collisionTime = 0;
+    shakeIntensity = 15;
+    flashOpacity = 0.7;
+
+    // Vibrate if supported (mobile devices)
+    if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+    }
+
+    // Create collision particles
+    createCollisionParticles();
+}
+
+let collisionParticles = [];
+
+function createCollisionParticles() {
+    const centerX = player.x + player.width / 2;
+    const centerY = player.y + player.height / 2;
+
+    for (let i = 0; i < 20; i++) {
+        const angle = (Math.PI * 2 * i) / 20;
+        const speed = 150 + Math.random() * 100;
+        collisionParticles.push({
+            x: centerX,
+            y: centerY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1.0,
+            size: 5 + Math.random() * 5
+        });
+    }
+}
+
+function updateCollisionParticles(deltaTime) {
+    for (let i = collisionParticles.length - 1; i >= 0; i--) {
+        const p = collisionParticles[i];
+        p.x += p.vx * deltaTime;
+        p.y += p.vy * deltaTime;
+        p.life -= deltaTime * 2;
+
+        if (p.life <= 0) {
+            collisionParticles.splice(i, 1);
+        }
+    }
+}
+
 function increaseDifficulty() {
     obstacleSpeed += 50; // Increase speed
     spawnRate = Math.max(200, spawnRate - 80); // Spawn faster, min 200ms
@@ -290,6 +406,14 @@ function updateHUD() {
 }
 
 function draw() {
+    // Apply screen shake
+    ctx.save();
+    if (shakeIntensity > 0) {
+        const shakeX = (Math.random() - 0.5) * shakeIntensity;
+        const shakeY = (Math.random() - 0.5) * shakeIntensity;
+        ctx.translate(shakeX, shakeY);
+    }
+
     // Clear Canvas
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -302,7 +426,14 @@ function draw() {
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
 
-    // Draw Player
+    // Draw Player (with collision effect)
+    if (isColliding) {
+        // Make player flash/blink
+        if (Math.floor(collisionTime * 20) % 2 === 0) {
+            ctx.globalAlpha = 0.5;
+        }
+    }
+
     if (player.isImage && player.img.complete) {
         ctx.drawImage(player.img, player.x, player.y, player.width, player.height);
     } else {
@@ -311,6 +442,8 @@ function draw() {
         ctx.textBaseline = 'top';
         ctx.fillText(player.emoji || '❓', player.x, player.y);
     }
+
+    ctx.globalAlpha = 1.0;
 
     // Draw Obstacles
     for (let obs of obstacles) {
@@ -323,6 +456,26 @@ function draw() {
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
+
+    // Draw collision particles
+    if (collisionParticles.length > 0) {
+        ctx.fillStyle = '#FF6B6B';
+        for (let p of collisionParticles) {
+            ctx.globalAlpha = p.life;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+    }
+
+    ctx.restore();
+
+    // Draw flash overlay (outside of shake transform)
+    if (flashOpacity > 0) {
+        ctx.fillStyle = `rgba(255, 0, 0, ${flashOpacity})`;
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    }
 }
 
 // Background Particles
@@ -442,6 +595,7 @@ function quitGame() {
 function goHome() {
     showScreen('start');
     hud.container.classList.add('hidden');
+    document.getElementById('mobile-controls').classList.add('hidden');
 }
 
 function showScreen(screenName) {
