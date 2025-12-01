@@ -296,6 +296,12 @@ function draw() {
     // Draw Background Particles
     drawBackground();
 
+    // Add shadow for better visibility
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+
     // Draw Player
     if (player.isImage && player.img.complete) {
         ctx.drawImage(player.img, player.x, player.y, player.width, player.height);
@@ -311,6 +317,12 @@ function draw() {
         ctx.font = `${obs.width}px serif`;
         ctx.fillText(obs.emoji, obs.x, obs.y);
     }
+
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 }
 
 // Background Particles
@@ -325,7 +337,7 @@ function initBackground() {
             y: Math.random() * CANVAS_HEIGHT,
             size: Math.random() * 30 + 10,
             speedMultiplier: Math.random() * 0.5 + 0.5, // 0.5 ~ 1.0
-            opacity: Math.random() * 0.4 + 0.1
+            opacity: Math.random() * 0.15 + 0.05 // Reduced opacity
         });
     }
 }
