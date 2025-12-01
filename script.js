@@ -85,7 +85,7 @@ function setupEventListeners() {
             document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('selected'));
             const target = e.currentTarget; // Use currentTarget to ensure we get the button, not child
             target.classList.add('selected');
-            
+
             player.isImage = false;
             player.emoji = target.dataset.char;
         });
@@ -181,6 +181,7 @@ function resetGameState() {
 
     // Reset Background
     canvas.style.background = STAGE_COLORS[0];
+    initBackground();
 
     updateHUD();
 }
@@ -192,6 +193,7 @@ function gameLoop(timestamp) {
     lastTime = timestamp;
 
     update(deltaTime);
+    updateBackground(deltaTime);
     draw();
 
     gameLoopId = requestAnimationFrame(gameLoop);
@@ -291,6 +293,9 @@ function draw() {
     // Clear Canvas
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+    // Draw Background Particles
+    drawBackground();
+
     // Draw Player
     if (player.isImage && player.img.complete) {
         ctx.drawImage(player.img, player.x, player.y, player.width, player.height);
@@ -306,6 +311,45 @@ function draw() {
         ctx.font = `${obs.width}px serif`;
         ctx.fillText(obs.emoji, obs.x, obs.y);
     }
+}
+
+// Background Particles
+let bgParticles = [];
+const PARTICLE_COUNT = 40;
+
+function initBackground() {
+    bgParticles = [];
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+        bgParticles.push({
+            x: Math.random() * CANVAS_WIDTH,
+            y: Math.random() * CANVAS_HEIGHT,
+            size: Math.random() * 30 + 10,
+            speedMultiplier: Math.random() * 0.5 + 0.5, // 0.5 ~ 1.0
+            opacity: Math.random() * 0.4 + 0.1
+        });
+    }
+}
+
+function updateBackground(deltaTime) {
+    for (let p of bgParticles) {
+        // Move at a speed similar to obstacles
+        p.y += obstacleSpeed * p.speedMultiplier * deltaTime;
+        if (p.y > CANVAS_HEIGHT + p.size) {
+            p.y = -p.size;
+            p.x = Math.random() * CANVAS_WIDTH;
+        }
+    }
+}
+
+function drawBackground() {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    for (let p of bgParticles) {
+        ctx.globalAlpha = p.opacity;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1.0; // Reset opacity
 }
 
 function gameOver() {
